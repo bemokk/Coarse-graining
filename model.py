@@ -6,50 +6,16 @@ from sklearn.preprocessing import StandardScaler
 from keras.optimizers import Adam
 from sklearn.preprocessing import RobustScaler
 
-# 从第i个文件到第j个fi_i文件作为输入
+# 从第i个文件到第j个feature文件作为输入
 inputStart = 0
-inputEnd = 19
+inputEnd = 1
 
-data = []
-
+# 读取feature，存到一个df内
+datas = []
 for i in range(inputStart, inputEnd+1):
-    file_path = f'cg_data/fi_i_test/{i * 1000}.txt'
-    with open(file_path, 'r') as file:
-        lines = file.readlines()
-        for line in lines:
-            parts = line.strip().split(';')
-            features = []
-            for part in parts[:-2]:
-                features.extend([float(value) for value in part.split(',') if value.strip()])
-            target = float(parts[-2].strip()) if parts[-2].strip() else None
-            data.append(features + [target])
-
-# 创建DataFrame
-df = pd.DataFrame(data)
-
-# 设置列标题
-column_titles = [str(i) for i in range(len(df.columns) - 1)] + ['target']
-df.columns = column_titles
-
-# # 初始化RobustScaler
-# scaler = RobustScaler()
-# # 选择要标准化的列（第0列至第194列）
-# features_to_scale = df.iloc[:, 0:195]  # 不包括最后的目标列
-# # 应用Robust Scaling
-# scaled_features = scaler.fit_transform(features_to_scale)
-# # 将标准化后的数据替换原数据
-# df.iloc[:, 0:195] = scaled_features
-
-# for col in df.columns[:-1]:  # 假设最后一列是目标列，不处理
-#     Q1 = df[col].quantile(0.05)
-#     Q3 = df[col].quantile(0.95)
-#     IQR = Q3 - Q1
-#     lower_bound = Q1 - 1.5 * IQR
-#     upper_bound = Q3 + 1.5 * IQR
-#
-#     # 只保留没有离群点的数据
-#     df = df[(df[col] >= lower_bound) & (df[col] <= upper_bound)]
-
+    file_path = f'cg_data/features/{i * 1000}.csv'
+    datas.append(pd.read_csv(file_path))
+df = pd.concat(datas, ignore_index=True)
 
 # 分离特征和目标值
 X = df.iloc[:, :-1]
@@ -70,12 +36,6 @@ model = Sequential()
 
 # 添加第一层（输入层），并增加更多神经元
 model.add(Dense(195, input_dim=X_train.shape[1], activation='relu'))
-
-# # 添加额外的隐藏层
-# model.add(Dense(64, activation='relu')) # 新增加的隐藏层
-
-# # 添加原有的隐藏层，并调整神经元数量
-# model.add(Dense(32, activation='relu'))
 
 # 添加输出层
 model.add(Dense(1, activation='linear'))

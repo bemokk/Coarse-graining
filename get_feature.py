@@ -1,13 +1,12 @@
 import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import pandas as pd
-from pandas import DataFrame
 
-# setting_file_path = "cg_data/system.in.settings"
-# origin_data_input_path = "cg_data/dump_info"
+setting_file_path = "cg_data/system.in.settings"
+origin_data_input_path = "cg_data/dump_info"
 
-setting_file_path = "cg_data/test_setting"
-origin_data_input_path = "cg_data/test_in"
+# setting_file_path = "cg_data/test_setting"
+# origin_data_input_path = "cg_data/test_in"
 
 features_data_output_path = "cg_data/features/"
 
@@ -70,7 +69,7 @@ def get_one_direction_features_of_one_group(type_of_group1, dict_of_groups, grou
         for j in range(i, 6):
             key = f"{i}-{j}"
             fi_dict[key] = [0] * 13
-    # target:fx/fy/fz
+    # target: fx/fy/fz
     fi_dict["target"] = group1[direction + 3]
 
     # L 1~5
@@ -79,21 +78,20 @@ def get_one_direction_features_of_one_group(type_of_group1, dict_of_groups, grou
         for k in range(-12, 1):
             sum_fi = 0
             for group2 in dict_of_groups[L]:
-                d = dist(
-                    group1[1], group1[2], group1[3], group2[1], group2[2], group2[3]
-                )
+                R = dist(group1[1], group1[2], group1[3], group2[1], group2[2], group2[3])
                 # 如果两个group是同一个group或者距离大于cutoff，跳过
-                if group1[0] == group2[0] or d > CUTOFF:
+                if group1[0] == group2[0] or R > CUTOFF:
                     continue
                 else:
                     # 统计feature，xij * Rij^(k-1)
-                    sum_fi += (group1[direction] - group2[direction]) * pow(d, k - 1)
+                    sum_fi += (group1[direction] - group2[direction]) * pow(R, k - 1)
+
             if L >= type_of_group1:
                 fi_dict[f"{type_of_group1}-{L}"][12 + k] = sum_fi
             else:
                 fi_dict[f"{L}-{type_of_group1}"][12 + k] = sum_fi
     data = []
-    for k,v in fi_dict.items():
+    for k, v in fi_dict.items():
         if k != "target":
             for feature in v:
                 data.append(feature)
@@ -104,14 +102,14 @@ def get_one_direction_features_of_one_group(type_of_group1, dict_of_groups, grou
 
 # 得到指定时间步的features
 def get_features_of_this_timestep(dict_of_groups, tsp):
-    file_path = features_data_output_path + str(tsp)+".csv"
+    file_path = features_data_output_path + str(tsp) + ".csv"
     remove_file(file_path)
 
     all_features = []
     for Type in range(1, 6):
         for group1 in dict_of_groups[Type]:
             # 分别计算每个group三个方向上的feature
-            feature_x  = get_one_direction_features_of_one_group(Type, dict_of_groups, group1, 1)
+            feature_x = get_one_direction_features_of_one_group(Type, dict_of_groups, group1, 1)
             feature_y = get_one_direction_features_of_one_group(Type, dict_of_groups, group1, 2)
             feature_z = get_one_direction_features_of_one_group(Type, dict_of_groups, group1, 3)
             all_features.append(feature_x)
@@ -131,22 +129,22 @@ def get_features_of_this_timestep(dict_of_groups, tsp):
 # 求一个原子三个方向上所受的库伦力分量之和
 def get_Coulomb_force_sum(atoms_dict, atom_id, cutoff):
     cf_sum = [0.0, 0.0, 0.0]  # 用于存储x,y,z方向上的力
-    x, y, z, q = atoms_dict[atom_id][2], atoms_dict[atom_id][3], atoms_dict[atom_id][4], atoms_dict[atom_id][1]
+    x1, y1, z1, q1 = atoms_dict[atom_id][2], atoms_dict[atom_id][3], atoms_dict[atom_id][4], atoms_dict[atom_id][1]
 
     for id, val in atoms_dict.items():
         if id == atom_id:
             continue  # 跳过自身
-        a_x, a_y, a_z, atoms_q = val[2], val[3], val[4], val[1]
+        x1, y2, z2, q2 = val[2], val[3], val[4], val[1]
 
         # 计算距离
-        dx, dy, dz = x - a_x, y - a_y, z - a_z
+        dx, dy, dz = x1 - x1, y1 - y2, z1 - z2
         d = (dx ** 2 + dy ** 2 + dz ** 2) ** 0.5
 
         if d > cutoff or d == 0:  # 跳过距离大于cutoff的原子和自身
             continue
 
         # 计算每个方向上的库仑力分量
-        force_magnitude = 332.0636 * q * atoms_q / d ** 2  # 单位kcal/mol/ai
+        force_magnitude = 332 * q1 * q2 / d ** 2  # 单位kcal/mol/ai
         for direction in range(3):
             # 计算方向分量
             direction_vector = [dx / d, dy / d, dz / d]
@@ -183,7 +181,7 @@ def gen_features_and_save(timeStep):
 
                     # 按照类型存储不同的group
                     dict_of_5_types_group = {1: [], 2: [], 3: [], 4: [], 5: []}
-                    
+
                     # 开始统计每个group的数据,统计完成后存放进对应type的list里
                     for key, value in group_dict.items():
                         group_fx = 0  # 该group内所有原子所受力的合力
@@ -201,18 +199,11 @@ def gen_features_and_save(timeStep):
                             atoms_y = atoms_dict[atoms_id][3]
                             atoms_z = atoms_dict[atoms_id][4]
 
-                            sums = get_Coulomb_force_sum(
-                                atoms_dict, atoms_id, 12
-                            )
+                            sums = get_Coulomb_force_sum(atoms_dict, atoms_id, 12)
 
-
-                            # group_fx单位 kcal/mol/ai
-                            group_fx += atoms_dict[atoms_id][5]
-                            group_fx -= sums[0]
-                            group_fy += atoms_dict[atoms_id][6]
-                            group_fy -= sums[1]
-                            group_fz += atoms_dict[atoms_id][7]
-                            group_fz -= sums[2]
+                            group_fx += (atoms_dict[atoms_id][5] - sums[0])
+                            group_fy += (atoms_dict[atoms_id][6] - sums[1])
+                            group_fz += (atoms_dict[atoms_id][7] - sums[2])
 
                             # 累加计算质心所需的值
                             total_mass += atoms_mass
@@ -237,7 +228,12 @@ def gen_features_and_save(timeStep):
                     get_features_of_this_timestep(dict_of_5_types_group, timestep_at_now)
 
 
-# def main():
+# def process_range(start, end):
+#     for tsp in range(start, end, 1000):
+#         gen_features_and_save(tsp)
+#
+
+# if __name__ == "__main__":
 #     minTimeStep = 0
 #     maxTimeStep = 1000
 #     num_processes = 1  # 根据您的机器情况调整进程数, 要确保(maxTimeStep - minTimeStep)能够整除num_processes
@@ -252,14 +248,5 @@ def gen_features_and_save(timeStep):
 #             end = start + steps_per_process if i < num_processes - 1 else maxTimeStep
 #             # 每个进程处理一个时间步区间
 #             futures.append(executor.submit(process_range, start, end))
-#
-#
-# def process_range(start, end):
-#     for tsp in range(start, end, 1000):
-#         gen_features_and_save(tsp)
-#
-#
-# if __name__ == "__main__":
-#     main()
 
 gen_features_and_save(0)
