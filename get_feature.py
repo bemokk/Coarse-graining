@@ -39,7 +39,7 @@ with open(setting_file_path) as f:
             for key, value in group_type_dict.items():
                 if lst[1] in key:
                     group_type = int(value)
-            group_atoms = map(int, list(lst[3::]))
+            group_atoms = list(map(int, lst[3::]))
 
             group_dict[(group_id, group_type)] = group_atoms
             group_id += 1
@@ -134,10 +134,10 @@ def get_Coulomb_force_sum(atoms_dict, atom_id, cutoff):
     for id, val in atoms_dict.items():
         if id == atom_id:
             continue  # 跳过自身
-        x1, y2, z2, q2 = val[2], val[3], val[4], val[1]
+        x2, y2, z2, q2 = val[2], val[3], val[4], val[1]
 
         # 计算距离
-        dx, dy, dz = x1 - x1, y1 - y2, z1 - z2
+        dx, dy, dz = x1 - x2, y1 - y2, z1 - z2
         d = (dx ** 2 + dy ** 2 + dz ** 2) ** 0.5
 
         if d > cutoff or d == 0:  # 跳过距离大于cutoff的原子和自身
@@ -145,6 +145,7 @@ def get_Coulomb_force_sum(atoms_dict, atom_id, cutoff):
 
         # 计算每个方向上的库仑力分量
         force_magnitude = 332 * q1 * q2 / d ** 2  # 单位kcal/mol/ai
+        # print(force_magnitude)
         for direction in range(3):
             # 计算方向分量
             direction_vector = [dx / d, dy / d, dz / d]
@@ -195,6 +196,8 @@ def gen_features_and_save(timeStep):
 
                         for atoms_id in value:
                             atoms_mass = atoms_dict[atoms_id][0]
+                            if atoms_mass <= 0:
+                                print(atoms_dict[atoms_id])
                             atoms_x = atoms_dict[atoms_id][2]
                             atoms_y = atoms_dict[atoms_id][3]
                             atoms_z = atoms_dict[atoms_id][4]
@@ -224,29 +227,27 @@ def gen_features_and_save(timeStep):
                         dict_of_5_types_group[key[1]].append(  # id x y z fx fy fz
                             (key[0], group_x, group_y, group_z, group_fx, group_fy, group_fz))
 
-                    # 生成当前时间步的features
+                    #生成当前时间步的features
                     get_features_of_this_timestep(dict_of_5_types_group, timestep_at_now)
 
 
-# def process_range(start, end):
-#     for tsp in range(start, end, 1000):
-#         gen_features_and_save(tsp)
-#
+def process_range(start, end):
+    for tsp in range(start, end, 1000):
+        gen_features_and_save(tsp)
 
-# if __name__ == "__main__":
-#     minTimeStep = 0
-#     maxTimeStep = 1000
-#     num_processes = 1  # 根据您的机器情况调整进程数, 要确保(maxTimeStep - minTimeStep)能够整除num_processes
-#
-#     # 计算每个进程要处理的时间步数量
-#     steps_per_process = (maxTimeStep - minTimeStep) // num_processes
-#
-#     with ProcessPoolExecutor(max_workers=num_processes) as executor:
-#         futures = []
-#         for i in range(num_processes):
-#             start = minTimeStep + i * steps_per_process
-#             end = start + steps_per_process if i < num_processes - 1 else maxTimeStep
-#             # 每个进程处理一个时间步区间
-#             futures.append(executor.submit(process_range, start, end))
 
-gen_features_and_save(0)
+if __name__ == "__main__":
+    minTimeStep = 20000
+    maxTimeStep = 30000
+    num_processes = 5  # 根据您的机器情况调整进程数, 要确保(maxTimeStep - minTimeStep)能够整除num_processes
+
+    # 计算每个进程要处理的时间步数量
+    steps_per_process = (maxTimeStep - minTimeStep) // num_processes
+
+    with ProcessPoolExecutor(max_workers=num_processes) as executor:
+        futures = []
+        for i in range(num_processes):
+            start = minTimeStep + i * steps_per_process
+            end = start + steps_per_process if i < num_processes - 1 else maxTimeStep
+            # 每个进程处理一个时间步区间
+            futures.append(executor.submit(process_range, start, end))

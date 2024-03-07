@@ -8,7 +8,7 @@ from sklearn.preprocessing import RobustScaler
 
 # 从第i个文件到第j个feature文件作为输入
 inputStart = 0
-inputEnd = 1
+inputEnd = 29
 
 # 读取feature，存到一个df内
 datas = []
@@ -20,9 +20,6 @@ df = pd.concat(datas, ignore_index=True)
 # 分离特征和目标值
 X = df.iloc[:, :-1]
 y = df.iloc[:, -1]
-
-X = df.drop('target', axis=1)  # 特征集是除了目标列的所有列
-y = df['target']  # 目标值是目标列
 
 # 数据标准化
 scaler = StandardScaler()
@@ -41,7 +38,7 @@ model.add(Dense(195, input_dim=X_train.shape[1], activation='relu'))
 model.add(Dense(1, activation='linear'))
 
 # 设置学习率
-learning_rate = 0.01  # 可以尝试不同的值，例如0.01, 0.001, 0.0001等
+learning_rate = 0.0001  # 可以尝试不同的值，例如0.01, 0.001, 0.0001等
 
 # 创建优化器实例
 optimizer = Adam(learning_rate=learning_rate)
