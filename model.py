@@ -3,17 +3,17 @@ from keras.models import Sequential
 from keras.layers import Dense
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from keras.callbacks import EarlyStopping
 from keras.optimizers import Adam
+from sklearn.preprocessing import RobustScaler
 
 # 从第i个文件到第j个fi_i文件作为输入
 inputStart = 0
-inputEnd = 8
+inputEnd = 19
 
 data = []
 
 for i in range(inputStart, inputEnd+1):
-    file_path = f'cg_data/fi_i/{i * 1000}.txt'
+    file_path = f'cg_data/fi_i_test/{i * 1000}.txt'
     with open(file_path, 'r') as file:
         lines = file.readlines()
         for line in lines:
@@ -30,6 +30,26 @@ df = pd.DataFrame(data)
 # 设置列标题
 column_titles = [str(i) for i in range(len(df.columns) - 1)] + ['target']
 df.columns = column_titles
+
+# # 初始化RobustScaler
+# scaler = RobustScaler()
+# # 选择要标准化的列（第0列至第194列）
+# features_to_scale = df.iloc[:, 0:195]  # 不包括最后的目标列
+# # 应用Robust Scaling
+# scaled_features = scaler.fit_transform(features_to_scale)
+# # 将标准化后的数据替换原数据
+# df.iloc[:, 0:195] = scaled_features
+
+# for col in df.columns[:-1]:  # 假设最后一列是目标列，不处理
+#     Q1 = df[col].quantile(0.05)
+#     Q3 = df[col].quantile(0.95)
+#     IQR = Q3 - Q1
+#     lower_bound = Q1 - 1.5 * IQR
+#     upper_bound = Q3 + 1.5 * IQR
+#
+#     # 只保留没有离群点的数据
+#     df = df[(df[col] >= lower_bound) & (df[col] <= upper_bound)]
+
 
 # 分离特征和目标值
 X = df.iloc[:, :-1]
@@ -49,7 +69,7 @@ X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, 
 model = Sequential()
 
 # 添加第一层（输入层），并增加更多神经元
-model.add(Dense(128, input_dim=X_train.shape[1], activation='relu'))
+model.add(Dense(195, input_dim=X_train.shape[1], activation='relu'))
 
 # # 添加额外的隐藏层
 # model.add(Dense(64, activation='relu')) # 新增加的隐藏层
@@ -61,7 +81,7 @@ model.add(Dense(128, input_dim=X_train.shape[1], activation='relu'))
 model.add(Dense(1, activation='linear'))
 
 # 设置学习率
-learning_rate = 0.001  # 可以尝试不同的值，例如0.01, 0.001, 0.0001等
+learning_rate = 0.01  # 可以尝试不同的值，例如0.01, 0.001, 0.0001等
 
 # 创建优化器实例
 optimizer = Adam(learning_rate=learning_rate)
