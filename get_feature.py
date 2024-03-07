@@ -237,8 +237,8 @@ def process_range(start, end):
 
 
 if __name__ == "__main__":
-    minTimeStep = 20000
-    maxTimeStep = 30000
+    minTimeStep = 30000
+    maxTimeStep = 35000
     num_processes = 5  # 根据您的机器情况调整进程数, 要确保(maxTimeStep - minTimeStep)能够整除num_processes
 
     # 计算每个进程要处理的时间步数量
