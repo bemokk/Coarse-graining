@@ -1,1 +1,5 @@
-/cg_data/
+/cg_data/dump_info
+/cg_data/run.in.nvt
+/cg_data/system.in.settings
+/cg_data/test_in
+/cg_data/test_setting
